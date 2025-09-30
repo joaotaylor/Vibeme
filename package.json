@@ -13,7 +13,7 @@
   "scripts": {
   "build": "remix vite:build",
   "dev": "remix vite:dev --port 5173",
-  "start": "remix-serve ./build",
+  "start": "remix-serve ./build/server/index.js",
   "preview": "pnpm run build && pnpm run start",
   "test": "vitest --run",
   "test:watch": "vitest",
