@@ -15,13 +15,45 @@ export default async function handleRequest(
 ) {
   // await initializeModelList({});
 
-  const readable = await renderToReadableStream(<RemixServer context={remixContext} url={request.url} />, {
-    signal: request.signal,
+ const { pipe } = ReactDOMServer.renderToPipeableStream(
+  <RemixServer context={remixContext} url={request.url} />,
+  {
+    onShellReady() {
+      // já pode começar a mandar dados
+    },
     onError(error: unknown) {
       console.error(error);
       responseStatusCode = 500;
     },
-  });
+  }
+);
+
+const body = new ReadableStream({
+  start(controller) {
+    const encoder = new TextEncoder();
+
+    // injeta o head
+    const head = renderHeadToString({ request, remixContext, Head });
+    controller.enqueue(
+      encoder.encode(
+        `<!DOCTYPE html><html lang="en" data-theme="${themeStore.value}"><head>${head}</head><body><div id="root" class="w-full h-full">`
+      )
+    );
+
+    const writable = new WritableStream({
+      write(chunk) {
+        controller.enqueue(chunk);
+      },
+      close() {
+        controller.enqueue(encoder.encode('</div></body></html>'));
+        controller.close();
+      },
+    });
+
+    pipe(writable);
+  },
+});
+
 
   const body = new ReadableStream({
     start(controller) {
